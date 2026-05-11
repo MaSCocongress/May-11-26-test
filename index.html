@@ -1,232 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Meeting Check-In</title>
-
+  <title>Konum Tabanlı Form Erişimi</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 40px;
-      padding: 20px;
-    }
-
-    input, button {
-      padding: 12px;
-      font-size: 16px;
-      margin-top: 10px;
-      width: 250px;
-      max-width: 90%;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 40px; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 20px; }
+    #status { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
-
 <body>
-
-  <h2>Meeting Check-In</h2>
-
-  <form id="checkin-form">
-
-    <label>Adınızı ve Soyadınızı Girin:</label>
-    <br>
-
-    <input
-      type="text"
-      id="name"
-      placeholder="İsim Soyisim"
-      required
-    >
-
-    <br>
-
-    <button type="submit">
-      Check In
-    </button>
-
-  </form>
-
-  <p id="status">
-    Konum kontrol ediliyor...
-  </p>
+  <h2>Konum Tabanlı Form Erişimi</h2>
+  <p id="status">Konum izni için butona tıklayın.</p>
+  <button onclick="checkLocation()">Konumumu Kontrol Et</button>
 
   <script>
-
-    // Allowed location
     const allowedLat = 40.952181;
     const allowedLon = 29.139799;
-
-    // Max distance
     const maxDistanceMeters = 100;
 
-    // Google Apps Script URL
-    const endpoint = "https://script.google.com/macros/s/AKfycbzh983eq5L_aNXpMQ4CTfe0qFjMelQ6yY9-aAfN_E_G7UHdYuiyuQMoGlPhgk4vWJ2A/exec";
+    const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdnMzK99CaPtuTryPAL3C-tEPRpjC_aSuWeRrxJ0yIWQhuBuA/viewform?usp=dialog";
 
-    // Meeting name
-    const meetingName = "Meeting";
-
-    let userLat = null;
-    let userLon = null;
-
-    // Distance calculator
     function getDistance(lat1, lon1, lat2, lon2) {
-
       const R = 6371e3;
-
       const toRad = x => x * Math.PI / 180;
-
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
-
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-      const c =
-        2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
 
-    // Get location
-    navigator.geolocation.getCurrentPosition(
-      success,
-      error,
-      {
-        enableHighAccuracy: true,
-        timeout: 10000
-      }
-    );
+    function checkLocation() {
+      document.getElementById("status").innerText = "Konum alınıyor...";
+      navigator.geolocation.getCurrentPosition(success, error);
+    }
 
-    function success(position) {
+    function success(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const distance = getDistance(lat, lon, allowedLat, allowedLon);
 
-      userLat = position.coords.latitude;
-      userLon = position.coords.longitude;
-
-      const dist = getDistance(
-        userLat,
-        userLon,
-        allowedLat,
-        allowedLon
-      );
-
-      if (dist <= maxDistanceMeters) {
-
-        document.getElementById("status").innerText =
-          "Konum uygun. Lütfen yoklama verin.";
-
+      if (distance <= maxDistanceMeters) {
+        document.getElementById("status").innerText = "Konum uygun. Forma yönlendiriliyorsunuz...";
+        setTimeout(() => {
+          window.location.href = googleFormUrl;
+        }, 1500);
       } else {
-
-        document.getElementById("checkin-form").style.display = "none";
-
-        document.getElementById("status").innerText =
-          `Konum çok uzak (${Math.round(dist)} m).`;
+        document.getElementById("status").innerText = `Erişim reddedildi. ${Math.round(distance)} metre uzaktasınız.`;
       }
     }
 
     function error(err) {
-
-      console.error(err);
-
-      document.getElementById("checkin-form").style.display = "none";
-
-      document.getElementById("status").innerText =
-        "Konum alınamadı. Lütfen izin verdiğinizden emin olun.";
+      document.getElementById("status").innerText = "Konum bilgisi alınamadı. Lütfen tarayıcıdan konum izni verin.";
     }
-
-    // Form submit
-    document.getElementById("checkin-form")
-      .addEventListener("submit", function (e) {
-
-      e.preventDefault();
-
-      const name =
-        document.getElementById("name").value.trim();
-
-      if (userLat === null || userLon === null) {
-
-        document.getElementById("status").innerText =
-          "Konum henüz alınamadı.";
-
-        return;
-      }
-
-      document.getElementById("status").innerText =
-        "Gönderiliyor...";
-
-      fetch(endpoint, {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-          name: name,
-          latitude: userLat,
-          longitude: userLon,
-          meeting: meetingName
-        })
-
-      })
-
-      .then(res => res.json())
-
-      .then(json => {
-
-        console.log(json);
-
-        if (json.status === "success") {
-
-          document.getElementById("checkin-form")
-            .style.display = "none";
-
-          document.getElementById("status").innerText =
-            "Yoklama alındı. Teşekkürler!";
-
-        } else if (
-          json.status === "already_checked_in"
-        ) {
-
-          document.getElementById("checkin-form")
-            .style.display = "none";
-
-          document.getElementById("status").innerText =
-            "Bu kişi zaten yoklama vermiş.";
-
-        } else {
-
-          document.getElementById("status").innerText =
-            "Hata: " + json.message;
-        }
-
-      })
-
-      .catch(err => {
-
-        console.error(err);
-
-        document.getElementById("status").innerText =
-          "Sunucuya ulaşılamıyor.";
-      });
-
-    });
-
   </script>
-
 </body>
 </html>
