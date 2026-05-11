@@ -226,23 +226,20 @@ function getDeviceId() {
 
           const payload = {
 
-            name: name,
+  name: name,
 
-            meeting:
-              MEETING_NAME,
+  deviceId: getDeviceId(),
 
-            latitude:
-              latitude,
+  meeting: MEETING_NAME,
 
-            longitude:
-              longitude,
+  latitude: latitude,
 
-            distance:
-              distance,
+  longitude: longitude,
 
-            status:
-              status
-          };
+  distance: distance,
+
+  status: status
+};
 
           message.innerText =
             "Yoklama gönderiliyor...";
