@@ -225,20 +225,13 @@ function getDeviceId() {
             : "TOO_FAR";
 
           const payload = {
-
-  name: name,
-
-  deviceId: getDeviceId(),
-
-  meeting: MEETING_NAME,
-
-  latitude: latitude,
-
-  longitude: longitude,
-
-  distance: distance,
-
-  status: status
+              name: name,
+              deviceId: getDeviceId(),
+              meeting: MEETING_NAME,
+              latitude: latitude,
+              longitude: longitude,
+              distance: distance,
+              status: status
 };
 
           message.innerText =
