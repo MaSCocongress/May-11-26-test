@@ -1,28 +1,36 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8">
   <title>Yoklama Sistemi</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
+      background: #f5f5f5;
       padding: 30px;
-      background: #ffffff;
+      text-align: center;
     }
 
     .box {
       background: white;
-      padding: 25px;
-      border-radius: 12px;
-      max-width: 400px;
+      max-width: 420px;
       margin: auto;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
     }
 
-    input, button {
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input,
+    button {
       width: 90%;
       padding: 12px;
       margin-top: 12px;
@@ -41,125 +49,310 @@
       cursor: pointer;
     }
 
+    button:hover {
+      opacity: 0.9;
+    }
+
     #message {
       margin-top: 20px;
       font-weight: bold;
       white-space: pre-line;
     }
+
   </style>
 </head>
 
 <body>
+
   <div class="box">
+
     <h2>Yoklama Sistemi</h2>
 
-    <input id="name" type="text" placeholder="Ad Soyad">
+    <input
+      id="name"
+      type="text"
+      placeholder="Ad Soyad"
+    >
 
-    <button onclick="checkIn()">Yoklama Ver</button>
+    <button onclick="checkIn()">
+      Yoklama Ver
+    </button>
 
     <p id="message"></p>
+
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzibspOTTUKmefQlksTnTtd76xFXzXBeml9oggxwC7e_rFIlQPFIo6Ykh24F_LFD1X3/exec";
 
-    const MEETING_NAME = "Deneme Etkinliği";
-    const TARGET_LAT = 40.95211338550056;
-    const TARGET_LON = 29.139845458102993;
+    // =========================
+    // CONFIG
+    // =========================
 
-    const MAX_DISTANCE = 100;
+    const SCRIPT_URL =
+      "YOUR_GOOGLE_APPS_SCRIPT_URL";
 
-    function getDistance(lat1, lon1, lat2, lon2) {
+    const MEETING_NAME =
+      "Deneme Etkinliği";
+
+    const TARGET_LAT =
+      40.95211338550056;
+
+    const TARGET_LON =
+      29.139845458102993;
+
+    const MAX_DISTANCE =
+      100;
+
+    // =========================
+    // DISTANCE FUNCTION
+    // =========================
+
+    function getDistance(
+      lat1,
+      lon1,
+      lat2,
+      lon2
+    ) {
+
       const R = 6371000;
-      const toRad = x => x * Math.PI / 180;
 
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
+      const toRad =
+        x => x * Math.PI / 180;
+
+      const dLat =
+        toRad(lat2 - lat1);
+
+      const dLon =
+        toRad(lon2 - lon1);
 
       const a =
-        Math.sin(dLat / 2) ** 2 +
+        Math.sin(dLat / 2) *
+        Math.sin(dLat / 2) +
+
         Math.cos(toRad(lat1)) *
         Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
 
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+      const c =
+        2 * Math.atan2(
+          Math.sqrt(a),
+          Math.sqrt(1 - a)
+        );
 
       return R * c;
     }
 
+    // =========================
+    // MAIN CHECK-IN
+    // =========================
+
     function checkIn() {
-      const name = document.getElementById("name").value.trim();
-      const message = document.getElementById("message");
+
+      const name =
+        document.getElementById("name")
+        .value
+        .trim();
+
+      const message =
+        document.getElementById("message");
 
       if (!name) {
-        message.innerText = "Lütfen ad soyad gir.";
+
+        message.innerText =
+          "Lütfen ad soyad gir.";
+
         return;
       }
 
       if (!navigator.geolocation) {
-        message.innerText = "Bu cihaz konum özelliğini desteklemiyor.";
+
+        message.innerText =
+          "Bu cihaz konum özelliğini desteklemiyor.";
+
         return;
       }
 
-      message.innerText = "Konum alınıyor...";
+      message.innerText =
+        "Konum alınıyor...";
 
       navigator.geolocation.getCurrentPosition(
+
+        // SUCCESS
         function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
 
-          const distance = Math.round(
-            getDistance(lat, lon, TARGET_LAT, TARGET_LON)
-          );
+          const latitude =
+            position.coords.latitude;
 
-          const status = distance <= MAX_DISTANCE ? "ACCEPTED" : "TOO_FAR";
+          const longitude =
+            position.coords.longitude;
+
+          const distance =
+            Math.round(
+              getDistance(
+                latitude,
+                longitude,
+                TARGET_LAT,
+                TARGET_LON
+              )
+            );
+
+          const status =
+            distance <= MAX_DISTANCE
+            ? "ACCEPTED"
+            : "TOO_FAR";
 
           const payload = {
+
             name: name,
-            meeting: MEETING_NAME,
-            lat: lat,
-            lon: lon,
-            distance: distance,
-            status: status
+
+            meeting:
+              MEETING_NAME,
+
+            latitude:
+              latitude,
+
+            longitude:
+              longitude,
+
+            distance:
+              distance,
+
+            status:
+              status
           };
 
+          message.innerText =
+            "Yoklama gönderiliyor...";
+
           fetch(SCRIPT_URL, {
+
             method: "POST",
-            mode: cors;
+
             headers: {
-              "Content-Type": "text/plain"
+              "Content-Type":
+                "text/plain"
             },
-            body: JSON.stringify(payload)
+
+            body:
+              JSON.stringify(payload)
+
+          })
+
+          .then(res => res.json())
+
+          .then(data => {
+
+            console.log(data);
+
+            if (
+              data.status === "success"
+            ) {
+
+              if (
+                status === "ACCEPTED"
+              ) {
+
+                message.innerText =
+                  "Yoklama başarıyla verildi.\n\n" +
+                  "Konum uygun.\n" +
+                  "Mesafe: " +
+                  distance +
+                  " metre.";
+
+              } else {
+
+                message.innerText =
+                  "Yoklama gönderildi.\n\n" +
+                  "Ancak konum uzakta görünüyor.\n" +
+                  "Mesafe: " +
+                  distance +
+                  " metre.";
+              }
+
+            }
+
+            else if (
+              data.status ===
+              "already_checked_in"
+            ) {
+
+              message.innerText =
+                "Bu kişi zaten yoklama verdi.";
+            }
+
+            else {
+
+              message.innerText =
+                "Sunucu hatası oluştu.";
+            }
+
+          })
+
+          .catch(err => {
+
+            console.error(err);
+
+            message.innerText =
+              "Sunucuya ulaşılamıyor.";
           });
 
-          if (status === "ACCEPTED") {
-            message.innerText =
-              "Yoklama gönderildi.\nKonum uygun.\nMesafe: " + distance + " metre.";
-          } else {
-            message.innerText =
-              "Yoklama gönderildi ama konum uzakta görünüyor.\nMesafe: " + distance + " metre.";
-          }
         },
 
+        // ERROR
         function(error) {
-          if (error.code === error.PERMISSION_DENIED) {
-            message.innerText = "Konum izni reddedildi. Tarayıcı ayarlarından konum iznini aç.";
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            message.innerText = "Konum bilgisi alınamadı.";
-          } else if (error.code === error.TIMEOUT) {
-            message.innerText = "Konum alma süresi doldu. Tekrar dene.";
-          } else {
-            message.innerText = "Bilinmeyen konum hatası.";
+
+          console.error(error);
+
+          if (
+            error.code ===
+            error.PERMISSION_DENIED
+          ) {
+
+            message.innerText =
+              "Konum izni reddedildi.";
+
           }
+
+          else if (
+            error.code ===
+            error.POSITION_UNAVAILABLE
+          ) {
+
+            message.innerText =
+              "Konum bilgisi alınamadı.";
+          }
+
+          else if (
+            error.code ===
+            error.TIMEOUT
+          ) {
+
+            message.innerText =
+              "Konum alma süresi doldu.";
+          }
+
+          else {
+
+            message.innerText =
+              "Bilinmeyen konum hatası.";
+          }
+
         },
 
+        // OPTIONS
         {
           enableHighAccuracy: true,
           timeout: 20000,
           maximumAge: 0
         }
+
       );
+
     }
+
   </script>
+
 </body>
 </html>
