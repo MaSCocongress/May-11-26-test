@@ -1,61 +1,165 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-  <title>Konum Tabanlı Form Erişimi</title>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Yoklama Sistemi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 40px; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 20px; }
-    #status { margin-top: 20px; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+      background: #f7f7f7;
+    }
+
+    .box {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+      width: 90%;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+
+    input {
+      border: 1px solid #ccc;
+    }
+
+    button {
+      border: none;
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-weight: bold;
+      white-space: pre-line;
+    }
   </style>
 </head>
+
 <body>
-  <h2>Konum Tabanlı Form Erişimi</h2>
-  <p id="status">Konum izni için butona tıklayın.</p>
-  <button onclick="checkLocation()">Konumumu Kontrol Et</button>
+  <div class="box">
+    <h2>Yoklama Sistemi</h2>
+
+    <input id="name" type="text" placeholder="Ad Soyad">
+
+    <button onclick="checkIn()">Yoklama Ver</button>
+
+    <p id="message"></p>
+  </div>
 
   <script>
-    const allowedLat = 40.952181;
-    const allowedLon = 29.139799;
-    const maxDistanceMeters = 100;
+    const SCRIPT_URL = "BURAYA_APPS_SCRIPT_EXEC_LINKINI_YAPIŞTIR";
 
-    const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdnMzK99CaPtuTryPAL3C-tEPRpjC_aSuWeRrxJ0yIWQhuBuA/viewform?usp=dialog";
+    const MEETING_NAME = "Deneme Etkinliği";
+
+    const TARGET_LAT = 40.952181;
+    const TARGET_LON = 29.000000;
+
+    const MAX_DISTANCE = 100;
 
     function getDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
+      const R = 6371000;
       const toRad = x => x * Math.PI / 180;
+
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
       return R * c;
     }
 
-    function checkLocation() {
-      document.getElementById("status").innerText = "Konum alınıyor...";
-      navigator.geolocation.getCurrentPosition(success, error);
-    }
+    function checkIn() {
+      const name = document.getElementById("name").value.trim();
+      const message = document.getElementById("message");
 
-    function success(pos) {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const distance = getDistance(lat, lon, allowedLat, allowedLon);
-
-      if (distance <= maxDistanceMeters) {
-        document.getElementById("status").innerText = "Konum uygun. Forma yönlendiriliyorsunuz...";
-        setTimeout(() => {
-          window.location.href = googleFormUrl;
-        }, 1500);
-      } else {
-        document.getElementById("status").innerText = `Erişim reddedildi. ${Math.round(distance)} metre uzaktasınız.`;
+      if (!name) {
+        message.innerText = "Lütfen ad soyad gir.";
+        return;
       }
-    }
 
-    function error(err) {
-      document.getElementById("status").innerText = "Konum bilgisi alınamadı. Lütfen tarayıcıdan konum izni verin.";
+      if (!navigator.geolocation) {
+        message.innerText = "Bu cihaz konum özelliğini desteklemiyor.";
+        return;
+      }
+
+      message.innerText = "Konum alınıyor...";
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          const distance = Math.round(
+            getDistance(lat, lon, TARGET_LAT, TARGET_LON)
+          );
+
+          const status = distance <= MAX_DISTANCE ? "ACCEPTED" : "TOO_FAR";
+
+          const payload = {
+            name: name,
+            meeting: MEETING_NAME,
+            lat: lat,
+            lon: lon,
+            distance: distance,
+            status: status
+          };
+
+          fetch(SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "text/plain"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (status === "ACCEPTED") {
+            message.innerText =
+              "Yoklama gönderildi.\nKonum uygun.\nMesafe: " + distance + " metre.";
+          } else {
+            message.innerText =
+              "Yoklama gönderildi ama konum uzakta görünüyor.\nMesafe: " + distance + " metre.";
+          }
+        },
+
+        function(error) {
+          if (error.code === error.PERMISSION_DENIED) {
+            message.innerText = "Konum izni reddedildi. Tarayıcı ayarlarından konum iznini aç.";
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            message.innerText = "Konum bilgisi alınamadı.";
+          } else if (error.code === error.TIMEOUT) {
+            message.innerText = "Konum alma süresi doldu. Tekrar dene.";
+          } else {
+            message.innerText = "Bilinmeyen konum hatası.";
+          }
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
+        }
+      );
     }
   </script>
 </body>
