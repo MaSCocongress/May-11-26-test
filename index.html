@@ -349,7 +349,15 @@ function getDeviceId() {
 
             message.innerText =
               "Konum alma süresi doldu.";
+          
           }
+            else if (
+  data.status === "duplicate_device"
+) {
+
+  message.innerText =
+    "Bu cihaz zaten yoklama verdi.";
+}
 
           else {
 
