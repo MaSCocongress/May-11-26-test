@@ -255,35 +255,38 @@ function getDeviceId() {
           .then(res => res.json())
 
           .then(data => {
+  console.log(data);
 
-            console.log(data);
+  if (data.status === "success") {
+    if (status === "ACCEPTED") {
+      message.innerText =
+        "Yoklama başarıyla verildi.\n\n" +
+        "Konum uygun.\n" +
+        "Mesafe: " + distance + " metre.";
+    } else {
+      message.innerText =
+        "Yoklama gönderildi.\n\n" +
+        "Ancak konum uzakta görünüyor.\n" +
+        "Mesafe: " + distance + " metre.";
+    }
+  }
 
-            if (
-              data.status === "success"
-            ) {
+  else if (data.status === "duplicate_device") {
+    message.innerText =
+      "Bu cihazdan zaten yoklama verilmiş.\n\n" +
+      "Aynı cihazla farklı isim girerek tekrar yoklama verilemez.";
+  }
 
-              if (
-                status === "ACCEPTED"
-              ) {
+  else if (data.status === "duplicate_name") {
+    message.innerText =
+      "Bu isimle zaten yoklama verilmiş.";
+  }
 
-                message.innerText =
-                  "Yoklama başarıyla verildi.\n\n" +
-                  "Konum uygun.\n" +
-                  "Mesafe: " +
-                  distance +
-                  " metre.";
-
-              } else {
-
-                message.innerText =
-                  "Yoklama gönderildi.\n\n" +
-                  "Ancak konum uzakta görünüyor.\n" +
-                  "Mesafe: " +
-                  distance +
-                  " metre.";
-              }
-
-            }
+  else {
+    message.innerText =
+      "Sunucu hatası oluştu.";
+  }
+})
 
             else if (
               data.status ===
